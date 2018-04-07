@@ -366,7 +366,7 @@ extension TLPhotosPickerViewController {
             var asset = asset
             asset.state = .ready
             guard let phAsset = asset.phAsset else { return }
-            let requestId = TLPhotoLibrary.cloudImageDownload(asset: phAsset, progressBlock: { [weak self] (progress) in
+            let requestId = TLPhotoLibrary.cloudImageDownload(asset: phAsset, progressBlock: { [weak self] (progress, error) in
                 guard let `self` = self else { return }
                 if asset.state == .ready {
                     asset.state = .progress

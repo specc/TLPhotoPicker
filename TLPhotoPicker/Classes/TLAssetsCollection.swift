@@ -56,7 +56,7 @@ public struct TLPHAsset {
     }
     
     @discardableResult
-    public func cloudImageDownload(progressBlock: @escaping (Double) -> Void, completionBlock:@escaping (UIImage?)-> Void ) -> PHImageRequestID? {
+    public func cloudImageDownload(progressBlock: @escaping (Double, Error?) -> Void, completionBlock:@escaping (UIImage?)-> Void ) -> PHImageRequestID? {
         guard let phAsset = self.phAsset else { return nil }
         return TLPhotoLibrary.cloudImageDownload(asset: phAsset, progressBlock: progressBlock, completionBlock: completionBlock)
     }
@@ -140,7 +140,7 @@ public struct TLPHAsset {
     //convertLivePhotosToPNG
     // false : If you want mov file at live photos
     // true  : If you want png file at live photos ( HEIC )
-    public func tempCopyMediaFile(convertLivePhotosToPNG: Bool = false, progressBlock:((Double) -> Void)? = nil, completionBlock:@escaping ((URL,String) -> Void)) -> PHImageRequestID? {
+    public func tempCopyMediaFile(convertLivePhotosToPNG: Bool = false, progressBlock:((Double, Error?) -> Void)? = nil, completionBlock:@escaping ((URL,String) -> Void)) -> PHImageRequestID? {
         guard let phAsset = self.phAsset else { return nil }
         var type: PHAssetResourceType? = nil
         if phAsset.mediaSubtypes.contains(.photoLive) == true, convertLivePhotosToPNG == false {
@@ -149,7 +149,8 @@ public struct TLPHAsset {
             type = phAsset.mediaType == .video ? .video : .photo
         }
         guard let resource = (PHAssetResource.assetResources(for: phAsset).filter{ $0.type == type }).first else { return nil }
-        let fileName = resource.originalFilename
+        // append UUID in case file names are the same
+        let fileName = "\(UUID().uuidString)_" + resource.originalFilename
         var writeURL: URL? = nil
         if #available(iOS 10.0, *) {
             writeURL = FileManager.default.temporaryDirectory.appendingPathComponent("\(fileName)")
@@ -169,7 +170,7 @@ public struct TLPHAsset {
             options.isNetworkAccessAllowed = true
             options.progressHandler = { (progress, error, stop, info) in
                 DispatchQueue.main.async {
-                    progressBlock?(progress)
+                    progressBlock?(progress, error)
                 }
             }
             return PHImageManager.default().requestExportSession(forVideo: phAsset, options: options, exportPreset: AVAssetExportPresetHighestQuality) { (session, infoDict) in
@@ -186,7 +187,7 @@ public struct TLPHAsset {
             options.isNetworkAccessAllowed = true
             options.progressHandler = { (progress, error, stop, info) in
                 DispatchQueue.main.async {
-                    progressBlock?(progress)
+                    progressBlock?(progress, error)
                 }
             }
             return PHImageManager.default().requestImageData(for: phAsset, options: options, resultHandler: { (data, uti, orientation, info) in
